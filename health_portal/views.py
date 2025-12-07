@@ -1,7 +1,7 @@
 # File: health_portal/views.py
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .data_collector import fetch_medlineplus_topics, fetch_openfda_matches
+from .data_collector import fetch_openfda_matches
 from suggestify import QuerySuggester
 import spacy
 import wikipedia
@@ -31,7 +31,7 @@ def detect_intent(query: str) -> str:
         return "description"
     return "general"
 
-def fetch_wiki_summary(term: str, sentences: int = 3) -> str:
+def fetch_wiki_summary(term: str, sentences: int = 5) -> str:
     """Fetch Wikipedia summary for a term."""
     try:
         summary = wikipedia.summary(term, sentences=sentences, auto_suggest=True, redirect=True)
@@ -74,7 +74,7 @@ def get_health_info(request):
     #  Generate related topic suggestions using Suggestify
     all_terms = [main_entity] + [c['title'] for c in educational_content]
     suggester = QuerySuggester(data_source=all_terms, use_wiki=False)
-    related_topics = suggester.suggest(query, top_k=5)
+    related_topics = suggester.suggest(query, top_k=10)
 
     response_data = {
         "query": query,
@@ -91,14 +91,15 @@ def get_health_info(request):
 @api_view(['GET'])
 def suggestions(request):
     query = request.GET.get('q', '').strip()
-    if not query:
+    if not query or len(query) < 3:
         return Response({"suggestions": []})
 
-    data = fetch_medlineplus_topics(query) + fetch_openfda_matches(query)
+
+    data =  fetch_openfda_matches(query)
     if not data:
         data = ["Headache", "Fever", "Cough", "Vomiting", "Fatigue"]
 
-    suggester = QuerySuggester(data_source=data, use_wiki=False)
+    suggester = QuerySuggester(data_source=data, use_wiki=True)
     suggestions_list = suggester.suggest(query, top_k=10)
 
     return Response({"suggestions": suggestions_list})

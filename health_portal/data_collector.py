@@ -3,37 +3,7 @@ import requests
 import urllib.parse
 
 # ------------------ Caches ------------------
-_medline_cache = {}  # {query: [topics]}
 _openfda_cache = {}  # {query: [reactions]}
-
-# ------------------ MedlinePlus ------------------
-def fetch_medlineplus_topics(query):
-    """Fetch MedlinePlus topics dynamically with caching."""
-    if query in _medline_cache:
-        return _medline_cache[query]
-
-    url = "https://wsearch.nlm.nih.gov/ws/query"
-    encoded_query = urllib.parse.quote(query)
-    params = {
-        "db": "healthTopics",
-        "term": encoded_query,
-        "max": 20,
-        "format": "json"
-    }
-
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            topics = [item.get("title", "") for item in data.get("records", [])]
-            _medline_cache[query] = topics
-            return topics
-        else:
-            print("❗MedlinePlus HTTP error:", response.status_code)
-    except Exception as e:
-        print("❗MedlinePlus fetch exception:", e)
-
-    return []
 
 # ------------------ OpenFDA ------------------
 def fetch_openfda_matches(query):
